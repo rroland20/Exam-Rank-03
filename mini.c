@@ -1,4 +1,27 @@
-#include "mini.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <math.h>
+#include <unistd.h>
+
+#define ARG "Error: argument\n"
+#define CORR "Error: Operation file corrupted\n"
+#define HEAD "%d %d %c\n"
+#define OPER "%c %f %f %f %c\n"
+
+typedef struct s_mini
+{
+    FILE *fp;
+    char *buf;
+    int res;
+    int width;
+    int height;
+    char ch;
+    char c;
+    float x;
+    float y;
+    float r;
+    char ch_c;
+} t_mini;
 
 void ft_putstr(char *str)
 {
@@ -13,7 +36,8 @@ void ft_putstr(char *str)
 
 int err(char *str, t_mini *mini)
 {
-    ft_putstr(str);
+    if (str)
+        ft_putstr(str);
     if (mini->buf)
         free(mini->buf);
     if (mini->fp)
@@ -24,7 +48,7 @@ int err(char *str, t_mini *mini)
 int open_file(char *file, t_mini *mini)
 {
     mini->fp = fopen(file, "r");
-    if (mini->fp == NULL)
+    if (!mini->fp)
         return(1);
     return(0);
 }
@@ -32,16 +56,15 @@ int open_file(char *file, t_mini *mini)
 int pars_back(t_mini *mini)
 {
     mini->res = fscanf(mini->fp, HEAD, &mini->width, &mini->height, &mini->ch);
-    if (mini->res != 3 || mini->width <= 0 || mini->width > 300 || \
-    mini->height <= 0 || mini->height > 300)
+    if ((mini->res != 3) || (mini->width <= 0) || (mini->width > 300) || \
+    (mini->height <= 0) || (mini->height > 300))
         return(1);
     return(0);
 }
 
 int alloc_buf(t_mini *mini)
 {
-    mini->buf = malloc(sizeof(char) * mini->width * mini->height);
-    if (!mini->buf)
+    if (!(mini->buf = malloc(sizeof(char) * mini->width * mini->height)))
         return (1);
     return(0);
 }
@@ -69,7 +92,7 @@ int scan_oper(t_mini *mini)
     mini->res = fscanf(mini->fp, OPER, &mini->c, &mini->x, &mini->y, &mini->r, &mini->ch_c);
     if (mini->c != 'c' && mini->c != 'C')
         return (1);
-    if (mini->r <= 0.0) // вот тут раньше было <= 0
+    if (mini->r <= 0.00000000)
         return(1);
     return(mini->res);
 }
@@ -81,10 +104,11 @@ int in_circus(t_mini *mini, float y, float x)
     dist = sqrtf((y - mini->y) * (y - mini->y) + (x - mini->x) * (x - mini->x));
     if (dist > mini->r)
         return (0);
-    else if ((dist - mini->r) * (dist - mini->r) < 1.00000000)
+    else if ((mini->r - dist) < 1.00000000)
         return(2);
     else
         return (1);
+    return (0);
 }
 
 void draw_circus(t_mini *mini)
@@ -99,7 +123,7 @@ void draw_circus(t_mini *mini)
         j = 0;
         while (j < mini->width)
         {
-            res = in_circus(mini, i, j);
+            res = in_circus(mini, (float)i, (float)j);
             if ((mini->c == 'c' && res == 2) || (mini->c == 'C' && res > 0))
                 mini->buf[mini->width * i + j] = mini->ch_c;
             j++;
@@ -112,18 +136,20 @@ int fill_circus(t_mini *mini)
 {
     int res;
 
-    while(1)
+    res = scan_oper(mini);
+    if (res != 5)
+        return (1);
+    while(res == 5)
     {
-        res = scan_oper(mini);
-    printf("%d\n", res);
         if (res == 5)
+        {
             draw_circus(mini);
-        else if (res == EOF)
-            return (0);
-        else
-            return (1);
+            res = scan_oper(mini);
+        }
     }
-    return (0);
+    if (res == -1)
+        return (0);
+    return (1);
 }
 
 void draw_all(t_mini *mini)
@@ -150,7 +176,10 @@ int main(int argc, char **argv)
     t_mini mini;
 
     mini.fp = NULL;
-    mini.buf = NULL; // этой строки не было
+    mini.buf = NULL;
+    mini.width = 0;
+    mini.height = 0;
+    mini.ch = 0;
     if (argc != 2)
         return (err(ARG, &mini));
     if (open_file(argv[1], &mini))
@@ -163,7 +192,6 @@ int main(int argc, char **argv)
     if (fill_circus(&mini))
         return (err(CORR, &mini));
     draw_all(&mini);
-    fclose(mini.fp);
-    free(mini.buf);
-    while(1);
+    err(NULL, &mini);
+    return (0);
 }
