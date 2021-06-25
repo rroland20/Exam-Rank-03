@@ -90,6 +90,8 @@ void fill_back(t_mini *mini)
 int scan_oper(t_mini *mini)
 {
     mini->res = fscanf(mini->fp, OPER, &mini->c, &mini->x, &mini->y, &mini->r, &mini->ch_c);
+    if (mini->res != 5)
+        return (1);
     if (mini->c != 'c' && mini->c != 'C')
         return (1);
     if (mini->r <= 0.00000000)
@@ -137,17 +139,16 @@ int fill_circus(t_mini *mini)
     int res;
 
     res = scan_oper(mini);
+    if (mini->res == -1)
+        return (0);
     if (res != 5)
         return (1);
     while(res == 5)
     {
-        if (res == 5)
-        {
-            draw_circus(mini);
-            res = scan_oper(mini);
-        }
+        draw_circus(mini);
+        res = scan_oper(mini);
     }
-    if (res == -1)
+    if (mini->res == -1)
         return (0);
     return (1);
 }
